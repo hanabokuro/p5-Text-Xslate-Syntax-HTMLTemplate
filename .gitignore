@@ -1,0 +1,13 @@
+.*
+!.gitignore
+/Makefile.old
+/Makefile
+*blib
+*~
+Makefile*
+!Makefile.PL
+META.yml
+MYMETA.yml
+inc/
+MANIFEST
+

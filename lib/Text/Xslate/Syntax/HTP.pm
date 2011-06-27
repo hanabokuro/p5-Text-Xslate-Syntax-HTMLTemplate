@@ -1,8 +1,13 @@
 package Text::Xslate::Syntax::HTP;
-use Any::Moose;
+
+use 5.008_001;
 
 use strict;
-use warnings;
+use warnings FATAL => 'recursion';
+
+our $VERSION = '0.1';
+
+use Any::Moose;
 
 use HTML::Template::Parser;
 use Text::Xslate::Symbol;

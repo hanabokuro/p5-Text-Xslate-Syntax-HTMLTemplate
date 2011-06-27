@@ -5,8 +5,6 @@ use 5.008_001;
 use strict;
 use warnings FATAL => 'recursion';
 
-our $VERSION = '0.1';
-
 use Any::Moose;
 
 extends qw(Text::Xslate::Compiler);

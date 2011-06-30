@@ -3,6 +3,6 @@
 use strict;
 use Test::More tests => 1;
 
-use_ok 'Text::Xslate::Compiler::HTP';
+use_ok 'Text::Xslate::Compiler::HTMLTemplate';
 
 

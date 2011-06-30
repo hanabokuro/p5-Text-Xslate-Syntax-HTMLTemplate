@@ -7,8 +7,9 @@ use Test::More;
 
 use t::lib::Util;
 
-my $tx = Text::Xslate->new(syntax => 'Metakolon');
-
-compare_render(q{[% $foo %]}, q{<TMPL_VAR NAME=foo>}, { foo => "this is foo" });
+compare_render('<TMPL_VAR NAME=foo>', params => { foo => 'this is foo'}, expected => 'this is foo');
+compare_render('<TMPL_VAR EXPR=foo>', params => { foo => 'this is foo'}, expected => 'this is foo');
 
 done_testing;
+
+

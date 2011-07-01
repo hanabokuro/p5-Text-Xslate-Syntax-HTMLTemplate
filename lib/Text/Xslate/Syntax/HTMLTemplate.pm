@@ -24,10 +24,11 @@ before 'parse' => sub {
 };
 
 our %loop_context_vars = (
-    __first__ => \&iterator_first,
-    __odd__   => \&iterator_odd,
-    __inner__ => \&iterator_inner,
-    __last__  => \&iterator_last,
+    __counter__ => \&iterator_counter,
+    __first__   => \&iterator_first,
+    __odd__     => \&iterator_odd,
+    __inner__   => \&iterator_inner,
+    __last__    => \&iterator_last,
 );
 
 has parser => (
@@ -332,6 +333,12 @@ sub convert_loop_context_vars {
 
     my $generator = $loop_context_vars{$var_name};
     return $generator->($self, $iterator_name, $item_name);
+}
+
+sub iterator_counter {
+    my($self, $iterator_name, $item_name) = @_;
+
+    $self->generate_binary('+', $self->generate_iterator($iterator_name, $item_name), $self->generate_literal(1));
 }
 
 sub iterator_first {

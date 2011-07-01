@@ -1,3 +1,9 @@
+2011-07-01  Shigeki Morimoto  <shigeki.morimoto@mixi.co.jp>
+
+	* Changes: Version 0.1001
+	* Changes: add __counter__ support
+	* Changes: add requirement HTML::Template::Pro.
+
 2011-06-30  Shigeki Morimoto  <shigeki@Morimo.to>
 
 	* Changes: version 0.1 release.

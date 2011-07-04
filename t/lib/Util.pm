@@ -65,9 +65,10 @@ sub compare_render {
     my($template, %args) = @_;
 
     $args{function} ||= {};
-    $args{use_global_vars}       = 0 if(not exists $args{use_global_vars});
-    $args{use_has_value}         = 0 if(not exists $args{use_has_value});
-    $args{use_loop_context_vars} = 0 if(not exists $args{use_loop_context_vars});
+    $args{use_global_vars}              = 0 if(not exists $args{use_global_vars});
+    $args{use_has_value}                = 0 if(not exists $args{use_has_value});
+    $args{use_loop_context_vars}        = 0 if(not exists $args{use_loop_context_vars});
+    $args{use_path_like_variable_scope} = 0 if(not exists $args{use_path_like_variable_scope});
     $args{params} ||= {};
 
     if($args{function}{html_escape}){
@@ -78,7 +79,8 @@ sub compare_render {
                                                      path => [ 't/template' ],
                                                      functions => $args{function},
                                                      global_vars => $args{use_global_vars},
-                                                     loop_context_vars => $args{use_loop_context_vars},,
+                                                     loop_context_vars => $args{use_loop_context_vars},
+                                                     path_like_variable_scope => $args{use_path_like_variable_scope},
                                                  );
     $engine->param($args{params});
     my $htp_output = $engine->output_original_HTMLTemplate();

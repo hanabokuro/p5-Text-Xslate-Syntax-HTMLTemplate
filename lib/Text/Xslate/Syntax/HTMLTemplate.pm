@@ -81,6 +81,7 @@ sub install_Xslate_as_HTMLTemplate {
             $parser->use_global_vars($self->{htp_engine}{global_vars});
             $parser->use_has_value(1);
             $parser->use_loop_context_vars($self->{htp_engine}{loop_context_vars});
+            $parser->use_path_like_variable_scope($self->{htp_engine}{path_like_variable_scope});
         };
         $xslate_engine->render_string(${$self->{htp_engine}->{scalarref}}, $self->{param});
     }
@@ -166,6 +167,12 @@ has use_global_vars => (
 );
 
 has use_loop_context_vars => (
+    is => 'rw',
+    isa => 'Bool',
+    default => 0,
+);
+
+has use_path_like_variable_scope => (
     is => 'rw',
     isa => 'Bool',
     default => 0,
@@ -367,7 +374,27 @@ sub convert_name_or_expr {
 sub convert_name {
     my($self, $name) = @_;
 
+    if($self->use_path_like_variable_scope and $name->[1] =~ m{^/(.*)}){
+        # path like variables. abs path
+        return $self->generate_variable('$' . $1);
+    }
     if ($self->loop_depth) {
+        if($self->use_path_like_variable_scope and $name->[1] =~ m{^../}){
+            # path like variables. relative path
+            my $name = $name->[1];
+            my $depth = $self->loop_depth;
+            $depth -- while($name =~ s{^../}{});
+
+            if($depth < 1){
+                return $self->generate_variable('$' . $name);
+            }
+
+            my $item_name = '$' . $self->dummy_loop_item_name . $depth;
+            return $self->generate_field('.',
+                                         $self->generate_variable($item_name),
+                                         $self->generate_literal($name));
+        }
+
         if($self->is_loop_context_vars($name)){
             $self->convert_loop_context_vars($name);
         }elsif ($self->use_global_vars) {

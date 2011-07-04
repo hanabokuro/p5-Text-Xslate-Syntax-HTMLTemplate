@@ -5,7 +5,7 @@ use 5.008_001;
 use strict;
 use warnings FATAL => 'recursion';
 
-our $VERSION = '0.1001';
+our $VERSION = '0.1002';
 
 use Any::Moose;
 
@@ -13,6 +13,123 @@ extends qw(Text::Xslate::Parser);
 
 use HTML::Template::Parser;
 use Text::Xslate::Symbol;
+
+sub install_Xslate_as_HTMLTemplate {
+    package Text::Xslate::Syntax::HTMLTemplate::_delegate;
+    use strict;
+    use warnings;
+
+    require HTML::Template::Pro;
+
+    our $xslate_engine;
+    our $html_escape;
+
+    my $original_HTP_new = \&HTML::Template::Pro::new;
+    {
+        no strict 'refs';
+        no warnings 'redefine';
+
+        *{'HTML::Template::Pro::new'} = sub {
+            my $self = {
+                htp_engine => $original_HTP_new->(@_),
+            };
+            bless $self, __PACKAGE__;
+            if(! $xslate_engine){
+                $xslate_engine = Text::Xslate->new(syntax => 'HTMLTemplate',
+                                                   type => 'html',
+                                                   compiler => 'Text::Xslate::Compiler::HTMLTemplate',
+                                                   path => $self->{htp_engine}->{path},
+                                                   function => {
+                                                       $html_escape ?
+                                                           (
+                                                               html => $html_escape,
+                                                               html_escape => $html_escape,
+                                                           ) : (),
+                                                       __has_value__ => \&Text::Xslate::Syntax::HTMLTemplate::default_has_value,
+                                                       __choise_global_var__ => \&Text::Xslate::Syntax::HTMLTemplate::default_choise_global_var,
+                                                       },
+                                               );
+            }
+            $self;
+        };
+    }
+
+    sub set_html_escape_function {
+        my($html_escape_arg) = @_;
+        $html_escape = $html_escape_arg;
+        $xslate_engine = undef;
+    }
+
+    sub param {
+        shift->{htp_engine}->param(@_);
+    }
+    sub output_original_HTMLTemplate {
+        shift->{htp_engine}->output(@_);
+    }
+    sub output {
+        my $self = shift;
+
+        $self->{param} = {};
+        foreach my $key ($self->{htp_engine}->param()){
+            $self->{param}->{$key} = $self->{htp_engine}->param($key);
+        }
+        $self->_set_function_as_param($self->{htp_engine}->{expr_func});
+        $self->_set_function_as_param(\%HTML::Template::Pro::FUNC);
+
+        local $Text::Xslate::Syntax::HTMLTemplate::before_parse_hook = sub {
+            my $parser = shift;
+            $parser->use_global_vars($self->{htp_engine}{global_vars});
+            $parser->use_has_value(1);
+            $parser->use_loop_context_vars($self->{htp_engine}{loop_context_vars});
+            $parser->use_path_like_variable_scope($self->{htp_engine}{path_like_variable_scope});
+        };
+        $xslate_engine->render_string(${$self->{htp_engine}->{scalarref}}, $self->{param});
+    }
+    sub _set_function_as_param {
+        my($self, $function_hash) = @_;
+
+        while (my($k, $v) = each %$function_hash) {
+            if (exists $self->{param}->{$k}) {
+                $v = Text::Xslate::Syntax::HTMLTemplate::StringOrFunction->new($self->{param}->{$k}, $v);
+            }
+            $self->{param}->{$k} = $v;
+        }
+    }
+
+    package Text::Xslate::Syntax::HTMLTemplate::StringOrFunction;
+    use strict;
+    use warnings;
+
+    use overload
+        q{""} => sub { shift->{string}; },
+        '&{}' => sub { shift->{function}; },
+        ;
+
+    sub new {
+        my($class, $string, $function) = @_;
+        my $self = {
+            string   => $string,
+            function => $function,
+        };
+        bless $self, $class;
+    }
+}
+
+sub default_has_value {
+    return 0 if(@_ == 0);
+    return @{$_[0]} != 0 if($_[0] and ref($_[0]) eq 'ARRAY');
+    $_[0];
+}
+
+sub default_choise_global_var {
+    my($global, $name, @loop_var_list) = @_;
+    foreach my $loop_var (@loop_var_list){
+        if(exists $loop_var->{$name}){
+            return $loop_var->{$name};
+        }
+    }
+    $global;
+}
 
 our $before_parse_hook = undef;
 
@@ -50,6 +167,12 @@ has use_global_vars => (
 );
 
 has use_loop_context_vars => (
+    is => 'rw',
+    isa => 'Bool',
+    default => 0,
+);
+
+has use_path_like_variable_scope => (
     is => 'rw',
     isa => 'Bool',
     default => 0,
@@ -251,7 +374,27 @@ sub convert_name_or_expr {
 sub convert_name {
     my($self, $name) = @_;
 
+    if($self->use_path_like_variable_scope and $name->[1] =~ m{^/(.*)}){
+        # path like variables. abs path
+        return $self->generate_variable('$' . $1);
+    }
     if ($self->loop_depth) {
+        if($self->use_path_like_variable_scope and $name->[1] =~ m{^../}){
+            # path like variables. relative path
+            my $name = $name->[1];
+            my $depth = $self->loop_depth;
+            $depth -- while($name =~ s{^../}{});
+
+            if($depth < 1){
+                return $self->generate_variable('$' . $name);
+            }
+
+            my $item_name = '$' . $self->dummy_loop_item_name . $depth;
+            return $self->generate_field('.',
+                                         $self->generate_variable($item_name),
+                                         $self->generate_literal($name));
+        }
+
         if($self->is_loop_context_vars($name)){
             $self->convert_loop_context_vars($name);
         }elsif ($self->use_global_vars) {
@@ -495,22 +638,6 @@ sub generate_iterator_size {
                           );
 }
 
-sub default_has_value {
-    return 0 if(@_ == 0);
-    return @{$_[0]} != 0 if($_[0] and ref($_[0]) eq 'ARRAY');
-    $_[0];
-}
-
-sub default_choise_global_var {
-    my($global, $name, @loop_var_list) = @_;
-    foreach my $loop_var (@loop_var_list){
-        if(exists $loop_var->{$name}){
-            return $loop_var->{$name};
-        }
-    }
-    $global;
-}
-
 no Any::Moose;
 __PACKAGE__->meta->make_immutable;
 
@@ -536,6 +663,15 @@ Text::Xslate::Syntax::HTMLTemplate - An alternative syntax compatible with HTML 
                               );
 
     print $tx->render('hello.tx');
+
+    For Migration test:
+
+    Text::Xslate::Syntax::HTMLTemplate::install_Xslate_as_HTMLTemplate();
+    my $htp = HTML::Template::Pro->new(...);
+    ...
+    my $output = $htp->output(); # generated by xsalte engine;
+    my $output_htp = $htp->output_original_HTMLTemplate(); # generated by HTML::Template::Pro;
+    diff($output, $output_htp);
 
 =head1 DESCRIPTION
 

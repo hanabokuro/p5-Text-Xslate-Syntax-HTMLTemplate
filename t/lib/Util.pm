@@ -45,13 +45,15 @@ sub compare_ast {
         $$yaml =~ s/^.*($unwatch_filed_re):.*\n//gmx;
     }
     {
-        require Text::Diff;
-        my $diff = Text::Diff::diff(\$yaml_metakolon, \$yaml_htp);
-        if($yaml_metakolon ne $yaml_htp){
-            print STDERR "XXX ast_metakolon:", $yaml_metakolon;
-            print STDERR "XXX ast_htp:", $yaml_htp;
-            print STDERR "==== diff begin ====\n", $diff, "\n==== diff end ====\n";
-        }
+        eval {
+            require Text::Diff or return;
+            my $diff = Text::Diff::diff(\$yaml_metakolon, \$yaml_htp);
+            if ($yaml_metakolon ne $yaml_htp) {
+                print STDERR "XXX ast_metakolon:", $yaml_metakolon;
+                print STDERR "XXX ast_htp:", $yaml_htp;
+                print STDERR "==== diff begin ====\n", $diff, "\n==== diff end ====\n";
+            }
+        };
     }
     is($yaml_metakolon, $yaml_htp);
 

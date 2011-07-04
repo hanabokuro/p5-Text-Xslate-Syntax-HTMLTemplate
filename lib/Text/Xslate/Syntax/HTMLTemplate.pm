@@ -162,7 +162,7 @@ sub convert_tmpl_var {
 
     my $expr = $self->convert_name_or_expr($node->name_or_expr);
 
-    if(defined $node->{escape} and $node->{escape} == 0){
+    if(defined $node->{escape} and $node->{escape} eq '0'){
         $expr = $self->generate_call('mark_raw', [ $expr ]);
     }
     $self->generate_print($expr);
@@ -301,8 +301,19 @@ sub convert_expr {
             'or'  => '||',
             'and' => '&&',
         );
-        $self->generate_binary($op_translate_table{$expr->[1]} || $expr->[1],
-                               $self->convert_expr($expr->[2]), $self->convert_expr($expr->[3]));
+        my $op = $op_translate_table{$expr->[1]} || $expr->[1];
+        my $ast = $self->generate_binary($op, $self->convert_expr($expr->[2]), $self->convert_expr($expr->[3]));
+        if($op eq '==' and $ast->second->arity eq 'literal' and !$ast->second->value){
+            # @@@ special case
+            # HTML::Tempalte treat (undef == 0) as true
+            # HTML::Tempalte treat (undef == '') as true
+            # convert 'x == 0' to '(x || 0) == 0'
+            # convert 'x == ""' to '(x || "") == ""'
+            $ast = $self->generate_binary($op,
+                                          $self->generate_binary('||', $ast->first, $ast->second),
+                                          $ast->second);
+        }
+        $ast;
     } elsif ($type eq 'function') {
         my(undef, $name, @raw_args) = @{ $expr };
         my @args = map { $self->convert_expr($_) } @raw_args;

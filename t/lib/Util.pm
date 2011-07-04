@@ -9,10 +9,11 @@ use Test::More;
 use HTML::Template::Pro;
 use Text::Xslate;
 use Text::Xslate::Syntax::Metakolon;
-use Text::Xslate::Compiler::HTMLTemplate;
 use Text::Xslate::Syntax::HTMLTemplate;
 
 use YAML;
+
+Text::Xslate::Syntax::HTMLTemplate::install_Xslate_as_HTMLTemplate();
 
 sub compare_ast {
     my($template_metakolon, $template_htp, %args) = @_;
@@ -69,35 +70,25 @@ sub compare_render {
     $args{use_loop_context_vars} = 0 if(not exists $args{use_loop_context_vars});
     $args{params} ||= {};
 
-    my $htp = HTML::Template::Pro->new_scalar_ref(\$template,
-                                                  path => [ 't/template' ],
-                                                  functions => $args{function},
-                                                  global_vars => $args{use_global_vars},
-                                                  loop_context_vars => $args{use_loop_context_vars},,
-                                              );
-    $htp->param($args{params});
-    my $htp_output = $htp->output();
+    if($args{function}{html_escape}){
+        Text::Xslate::Syntax::HTMLTemplate::_delegate::set_html_escape_function($args{function}{html_escape});
+    }
+
+    my $engine = HTML::Template::Pro->new_scalar_ref(\$template,
+                                                     path => [ 't/template' ],
+                                                     functions => $args{function},
+                                                     global_vars => $args{use_global_vars},
+                                                     loop_context_vars => $args{use_loop_context_vars},,
+                                                 );
+    $engine->param($args{params});
+    my $htp_output = $engine->output_original_HTMLTemplate();
     is($htp_output, $args{expected}, "htp == expected") if(exists $args{expected});
 
-    $args{function}->{__has_value__} = \&Text::Xslate::Syntax::HTMLTemplate::default_has_value;
-    $args{function}->{__choise_global_var__} = \&Text::Xslate::Syntax::HTMLTemplate::default_choise_global_var;
-    local $Text::Xslate::Syntax::HTMLTemplate::before_parse_hook = sub {
-        my $parser = shift;
-        $parser->use_global_vars($args{use_global_vars});
-        $parser->use_has_value($args{use_has_value});
-        $parser->use_loop_context_vars($args{use_loop_context_vars});
-    };
-
-    my $tx = Text::Xslate->new(syntax => 'HTMLTemplate',
-                               type => 'html',
-                               compiler => 'Text::Xslate::Compiler::HTMLTemplate',
-                               path => [ 't/template' ],
-                               function => $args{function},
-                           );
-    my $tx_output = $tx->render_string($template, $args{params});
+    my $tx_output = $engine->output();
     is($tx_output,  $args{expected}, "tx == expected") if(exists $args{expected});
 
     is($tx_output, $htp_output, "tx == htp");
+
 }
 
 1;

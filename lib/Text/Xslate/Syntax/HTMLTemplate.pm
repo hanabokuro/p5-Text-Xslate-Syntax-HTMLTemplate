@@ -205,6 +205,12 @@ has loop_depth => (
     default => 0,
 );
 
+has is_escaped_var => (
+    is => 'rw',
+    isa => 'CodeRef',
+    default => sub { sub {0;} },
+);
+
 has op_to_type_table => (
     is => 'rw',
     isa => 'HashRef',
@@ -285,7 +291,15 @@ sub convert_tmpl_var {
 
     my $expr = $self->convert_name_or_expr($node->name_or_expr);
 
+    my $do_mark_raw = 0;
     if(defined $node->{escape} and $node->{escape} eq '0'){
+        $do_mark_raw = 1;
+    }
+    if($node->name_or_expr->[0] eq 'name' and $self->is_escaped_var->($node->name_or_expr->[1]->[1])){
+        $do_mark_raw = 1;
+    }
+
+    if($do_mark_raw){
         $expr = $self->generate_call('mark_raw', [ $expr ]);
     }
     $self->generate_print($expr);

@@ -5,7 +5,7 @@ use 5.008_001;
 use strict;
 use warnings FATAL => 'recursion';
 
-our $VERSION = '0.1002';
+our $VERSION = '0.1003';
 
 use Any::Moose;
 
@@ -711,6 +711,12 @@ HTML::Template treats empty array referense as Flase.
 But Xslate treats empty array referense as True.
 when use_has_value is seted, Syntax::HTMLTemplate
 you have to register function to handle that.
+
+=item C<is_escaped_var>
+
+Method that determine var is escaped or not.
+For temporary use while migration.
+You should use Text::Xslate::mark_raw().
 
 =back
 

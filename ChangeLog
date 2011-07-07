@@ -1,3 +1,9 @@
+2011-07-07  Shigeki Morimoto  <shigeki.morimoto@mixi.co.jp>
+
+	* Changes: Version 0.1003
+	* Changes: add is_escaped_var
+	* Changes: fix test.
+
 2011-07-04  Shigeki Morimoto  <shigeki.morimoto@mixi.co.jp>
 
 	* Changes: Version 0.1002

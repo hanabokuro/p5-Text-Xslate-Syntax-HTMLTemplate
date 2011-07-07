@@ -11,6 +11,7 @@ use t::lib::Util;
 my $tx = Text::Xslate->new(syntax => 'HTMLTemplate',
                            type => 'html', # enable auto escape
                            compiler => 'Text::Xslate::Compiler::HTMLTemplate',
+                           cache => 0,
                            path => {
                                'foo.tx' => '<TMPL_VAR EXPR=foo()>',
                                'include_foo.tx' => '<TMPL_INCLUDE NAME=foo.tx>',

@@ -62,5 +62,5 @@ sub html_escape {
         '>' => '&gt;',
     );
     $s =~ s/(.)/$escape_map{$1} || $1/ge;
-    Text::Xslate::mark_raw($s);
+    $s;
 }

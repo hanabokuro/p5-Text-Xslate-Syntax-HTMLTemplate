@@ -16,7 +16,7 @@ END;
 compare_ast(<<'END;', <<'END;');
 [% $name %]
 [% for $loop->$__dummy_item__1 { %]
-[%   include "x.tx" { $__dummy_item__1 } %]
+[%   include "x.tx" { __ROOT__.merge($__dummy_item__1) } %]
 [% } %]
 [% $name %]
 END;

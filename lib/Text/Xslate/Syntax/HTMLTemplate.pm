@@ -370,7 +370,13 @@ sub convert_include {
     my $include = $self->generate_include($self->convert_name_or_expr($node->name_or_expr));
 
     if($self->loop_depth){
-        $include->second([ $self->generate_variable('$'.$self->dummy_loop_item_name.$self->loop_depth) ]);
+        $include->second([
+            $self->generate_methodcall(
+                '.',
+                $self->generate_vars('__ROOT__'),
+                $self->generate_literal(undef, 'merge'),
+                $self->generate_variable('$'.$self->dummy_loop_item_name.$self->loop_depth),
+            )]);
     }
     $include;
 }
@@ -563,7 +569,15 @@ sub generate_literal {
     my($self, $value, $id) = @_;
 
     $id = $value if(not defined $id);
-    Text::Xslate::Symbol->new(arity => 'literal', id => $id, value => $value);
+    my $literal = Text::Xslate::Symbol->new(arity => 'literal', id => $id);
+    $literal->value($value) if defined $value;
+    $literal;
+}
+
+sub generate_vars {
+    my($self, $name) = @_;
+
+    Text::Xslate::Symbol->new(arity => 'vars', id => $name);
 }
 
 sub generate_variable {
@@ -595,6 +609,14 @@ sub generate_call {
 
     Text::Xslate::Symbol->new(arity => 'call', id => '(', first => $self->generate_name($name), second => $args);
 }
+
+sub generate_methodcall {
+    my($self, $name, $first, $second, @other_args) = @_;
+
+    Text::Xslate::Symbol->new(arity => 'methodcall', id => $name, first => $first, second => $second, third => \@other_args);
+}
+
+
 
 sub generate_binary {
     my($self, $id, $first, $second) = @_;

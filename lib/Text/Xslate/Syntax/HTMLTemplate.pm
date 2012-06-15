@@ -148,6 +148,11 @@ our %loop_context_vars = (
     __last__    => \&iterator_last,
 );
 
+has input_filter => (
+    is => 'rw',
+    isa => 'CodeRef',
+);
+
 has parser => (
     is       => 'rw',
     required => 1,
@@ -237,6 +242,8 @@ sub _build_op_to_type_table {
 
 sub parse {
     my($self, $input, %no_use) = @_;
+
+    $self->input_filter->(\$input) if($self->input_filter);
 
     my $tree = $self->parser->parse($input);
     my @ast = $self->tree_to_ast($tree);

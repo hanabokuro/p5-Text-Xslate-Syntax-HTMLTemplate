@@ -1,3 +1,9 @@
+2012-07-27  Shigeki Morimoto  <shigeki.morimoto@mixi.co.jp>
+
+	* Changes: Version 0.1004
+	* Changes: add input_filter
+	* Changes: change build-include-ast code to support Text::Xslate 1.5012.
+
 2011-07-07  Shigeki Morimoto  <shigeki.morimoto@mixi.co.jp>
 
 	* Changes: Version 0.1003

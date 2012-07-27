@@ -5,7 +5,7 @@ use 5.008_001;
 use strict;
 use warnings FATAL => 'recursion';
 
-our $VERSION = '0.1003';
+our $VERSION = '0.1004';
 
 use Any::Moose;
 

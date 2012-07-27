@@ -18,6 +18,13 @@ sub parser_option {
         input_filter => undef,
     };
 }
+sub replace_option_value_for_magic_token {
+    my($self, $name, $value) = @_;
+
+    return $name if $name eq 'input_filter';
+    return $value;
+}
+
 
 no Any::Moose;
 
